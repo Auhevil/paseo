@@ -4,6 +4,7 @@ import {
   computeCanStartDictation,
   resolveActiveSendBehavior,
   resolveComposerSurfacePresentation,
+  resolveProviderSendBehavior,
   runAlternateSendAction,
   runDefaultSendAction,
   runMessageInputKeyboardAction,
@@ -189,11 +190,70 @@ describe("dictation transcript behavior", () => {
 });
 
 describe("composer send behavior", () => {
-  it("sends immediately when queue mode cannot advance past a permission", () => {
-    expect(resolveActiveSendBehavior("queue", true)).toBe("interrupt");
-    expect(resolveActiveSendBehavior("queue", false)).toBe("queue");
-    expect(resolveActiveSendBehavior("steer", true)).toBe("steer");
+  it("keeps Codely messages queued while an active turn waits for permission", () => {
+    const defaultSendBehavior = resolveActiveSendBehavior({
+      sendBehavior: resolveProviderSendBehavior("steer", "codely"),
+      hasPendingPermission: true,
+      provider: "codely",
+    });
+    const defaultAction = actions();
+    runDefaultSendAction({ defaultSendBehavior, isAgentRunning: true, ...defaultAction });
+    const immediateAction = actions();
+    runAlternateSendAction({ defaultSendBehavior, isAgentRunning: true, ...immediateAction });
+
+    expect(defaultAction.calls).toEqual(["queue"]);
+    expect(immediateAction.calls).toEqual(["send"]);
   });
+
+  it.each(["interrupt", "steer", "queue"] as const)(
+    "queues Codely with the %s preference while keeping the immediate send action",
+    (preference) => {
+      const defaultSendBehavior = resolveProviderSendBehavior(preference, "codely");
+      const defaultAction = actions();
+      runDefaultSendAction({
+        defaultSendBehavior,
+        isAgentRunning: true,
+        ...defaultAction,
+      });
+      const immediateAction = actions();
+      runAlternateSendAction({
+        defaultSendBehavior,
+        isAgentRunning: true,
+        ...immediateAction,
+      });
+      expect(defaultAction.calls).toEqual(["queue"]);
+      expect(immediateAction.calls).toEqual(["send"]);
+      expect(
+        resolveActiveSendBehavior({
+          sendBehavior: defaultSendBehavior,
+          hasPendingPermission: false,
+          provider: "codely",
+        }),
+      ).toBe("queue");
+    },
+  );
+
+  it.each(["codex", "claude", null])("preserves the sending preference for %s", (provider) => {
+    const preferences = ["interrupt", "steer", "queue"] as const;
+    expect(
+      preferences.map((preference) => resolveProviderSendBehavior(preference, provider)),
+    ).toEqual(preferences);
+  });
+
+  it.each(["codex", "claude", null])(
+    "preserves immediate sending past a permission for %s",
+    (provider) => {
+      expect(
+        resolveActiveSendBehavior({ sendBehavior: "queue", hasPendingPermission: true, provider }),
+      ).toBe("interrupt");
+      expect(
+        resolveActiveSendBehavior({ sendBehavior: "queue", hasPendingPermission: false, provider }),
+      ).toBe("queue");
+      expect(
+        resolveActiveSendBehavior({ sendBehavior: "steer", hasPendingPermission: true, provider }),
+      ).toBe("steer");
+    },
+  );
 
   function actions() {
     const calls: string[] = [];

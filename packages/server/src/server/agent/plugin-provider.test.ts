@@ -396,6 +396,68 @@ describe("PluginAgentClientRegistry", () => {
     await registry.shutdown();
   });
 
+  test("returns unavailable without sending when a plugin cannot steer", async () => {
+    const harness = createProviderHarness();
+    const registry = new PluginAgentClientRegistry(createTestLogger());
+    registry.replace([harness.registration]);
+    const session = await registry.clients()[harness.registration.id]!.createSession({
+      provider: harness.registration.id,
+      cwd: "/workspace",
+    });
+    try {
+      await expect(
+        session.steerActiveTurn!("follow up", { expectedTurnId: "turn-1" }),
+      ).resolves.toEqual({ status: "unavailable" });
+      expect(harness.inputs.filter((input) => input.type === "session.prompt")).toEqual([]);
+    } finally {
+      await registry.shutdown();
+    }
+  });
+
+  test("keeps steering available when the plugin negotiates it", async () => {
+    const harness = createProviderHarness({
+      capabilities: [...CAPABILITIES, "prompt.steer"],
+      async handleInput(input, emit) {
+        if (input.type !== "session.prompt") return false;
+        emit({
+          type: "session.prompt_result",
+          sessionId: input.sessionId,
+          clientMessageId: input.prompt.clientMessageId,
+          result: { type: "steer", turnId: "turn-1" },
+        });
+        return true;
+      },
+    });
+    const registry = new PluginAgentClientRegistry(createTestLogger());
+    registry.replace([harness.registration]);
+    const session = await registry.clients()[harness.registration.id]!.createSession({
+      provider: harness.registration.id,
+      cwd: "/workspace",
+    });
+    try {
+      await expect(
+        session.steerActiveTurn!("follow up", {
+          expectedTurnId: "turn-1",
+          clientMessageId: "follow-up",
+        }),
+      ).resolves.toEqual({ status: "accepted" });
+      expect(harness.inputs.filter((input) => input.type === "session.prompt")).toEqual([
+        {
+          type: "session.prompt",
+          sessionId: expect.any(String),
+          prompt: {
+            clientMessageId: "follow-up",
+            delivery: "steer",
+            input: { type: "message", content: [{ type: "text", text: "follow up" }] },
+            clearPendingPermissions: undefined,
+          },
+        },
+      ]);
+    } finally {
+      await registry.shutdown();
+    }
+  });
+
   test("terminalizes an active turn exactly once when its plugin provider is removed", async () => {
     const harness = createProviderHarness({ completeTurn: false });
     const registry = new PluginAgentClientRegistry(createTestLogger());

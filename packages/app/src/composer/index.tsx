@@ -107,7 +107,7 @@ import {
 } from "@/attachments/service";
 import { resolveAgentControlsMode } from "@/composer/agent-controls/mode";
 import { resolveComposerInputMode, type ComposerInputMode } from "@/composer/input-mode";
-import { resolveActiveSendBehavior } from "./input/state";
+import { resolveActiveSendBehavior, resolveProviderSendBehavior } from "./input/state";
 import { useKeyboardActionHandler } from "@/hooks/use-keyboard-action-handler";
 import type { KeyboardActionDefinition } from "@/keyboard/keyboard-action-dispatcher";
 import type { MessageInputKeyboardActionKind } from "@/keyboard/actions";
@@ -1302,6 +1302,7 @@ function ComposerContentImpl({
   const { settings: appSettings } = useAppSettings();
 
   const agentState = useSessionStore(useShallow(buildAgentStateSelector(serverId, agentId)));
+  const sendBehavior = resolveProviderSendBehavior(appSettings.sendBehavior, agentState.provider);
 
   const queuedMessagesRaw = useSessionStore((state) =>
     state.sessions[serverId]?.queuedMessages?.get(agentId),
@@ -1548,10 +1549,10 @@ function ComposerContentImpl({
         agentIdRef.current,
         text,
         submitAttachments,
-        appSettings.sendBehavior === "steer" ? "steer" : "interrupt",
+        sendBehavior === "steer" ? "steer" : "interrupt",
       );
     },
-    [appSettings.sendBehavior, cwd, onMessageSent, t],
+    [sendBehavior, cwd, onMessageSent, t],
   );
 
   useEffect(() => {
@@ -1589,7 +1590,7 @@ function ComposerContentImpl({
       });
       onAttentionPromptSend?.();
     };
-  }, [appSettings.sendBehavior, client, onAttentionPromptSend, serverId, supportsForgeSearch, t]);
+  }, [client, onAttentionPromptSend, serverId, supportsForgeSearch, t]);
 
   useEffect(() => {
     onSubmitMessageRef.current = onSubmitMessage;
@@ -1602,8 +1603,6 @@ function ComposerContentImpl({
     (state) => selectAgentTurnPresentation(state.sessions[serverId], agentId).isCancelling,
   );
   const isAgentRunning = hasActiveTurn;
-  // Queueing behind a permission prompt would strand the message: the turn is
-  // parked until the request is answered.
   const hasPendingPermission = useSessionStore((state) => {
     const pendingPermissions = state.sessions[serverId]?.pendingPermissions;
     if (!pendingPermissions) return false;
@@ -1612,10 +1611,11 @@ function ComposerContentImpl({
     }
     return false;
   });
-  const activeSendBehavior = resolveActiveSendBehavior(
-    appSettings.sendBehavior,
+  const activeSendBehavior = resolveActiveSendBehavior({
+    sendBehavior,
     hasPendingPermission,
-  );
+    provider: agentState.provider,
+  });
   const hasAgent = agentState.status !== null;
 
   const queueWriter = useMemo<QueueWriter>(

@@ -5,10 +5,27 @@ import type { MessageInputKeyboardActionKind } from "@/keyboard/actions";
 
 export type SendBehavior = ActiveTurnBehavior | "queue";
 
-export function resolveActiveSendBehavior(
+export function resolveProviderSendBehavior(
   sendBehavior: SendBehavior,
-  hasPendingPermission: boolean,
+  provider: string | null,
 ): SendBehavior {
+  // Codely accepts follow-ups between turns; the alternate action still sends immediately.
+  return provider === "codely" ? "queue" : sendBehavior;
+}
+
+interface ActiveSendBehaviorContext {
+  sendBehavior: SendBehavior;
+  hasPendingPermission: boolean;
+  provider: string | null;
+}
+
+export function resolveActiveSendBehavior({
+  sendBehavior,
+  hasPendingPermission,
+  provider,
+}: ActiveSendBehaviorContext): SendBehavior {
+  // Codely keeps follow-ups queued until the user resolves the active approval.
+  if (provider === "codely") return sendBehavior;
   return sendBehavior === "queue" && hasPendingPermission ? "interrupt" : sendBehavior;
 }
 
