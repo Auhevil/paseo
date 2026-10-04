@@ -251,6 +251,17 @@ export async function checkForAppUpdate({
   releaseChannel: AppReleaseChannel;
   intent: AppUpdateCheckIntent;
 }): Promise<AppUpdateCheckResult> {
+  if (app.getName() === "Paseo Codely") {
+    return {
+      hasUpdate: false,
+      readyToInstall: false,
+      currentVersion,
+      latestVersion: currentVersion,
+      body: "Paseo Codely uses manually installed updates.",
+      date: null,
+      errorMessage: null,
+    };
+  }
   updateLifecycleLog.checkStarted({ currentVersion, releaseChannel, intent });
   const result = await appUpdateService.checkForAppUpdate({
     currentVersion,
@@ -279,6 +290,13 @@ export async function downloadAndInstallUpdate(
   },
   onBeforeQuit?: () => Promise<void>,
 ): Promise<AppUpdateInstallResult> {
+  if (app.getName() === "Paseo Codely") {
+    return {
+      installed: false,
+      version: null,
+      message: "Paseo Codely uses manually installed updates.",
+    };
+  }
   return appUpdateService.downloadAndInstallUpdate(
     { currentVersion, releaseChannel },
     onBeforeQuit,
@@ -294,6 +312,7 @@ export async function installAppUpdateOnQuit({
   releaseChannel: AppReleaseChannel;
   signal: AbortSignal;
 }): Promise<boolean> {
+  if (app.getName() === "Paseo Codely") return false;
   if (
     !shouldInstallAppUpdateOnQuit({
       platform: process.platform,

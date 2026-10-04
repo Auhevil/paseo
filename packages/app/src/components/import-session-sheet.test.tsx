@@ -82,6 +82,23 @@ vi.mock("lucide-react-native", () => {
   };
 });
 
+vi.mock("@/components/ui/search-field", () => ({
+  SearchField: ({
+    value,
+    onChangeText,
+    testID,
+  }: {
+    value: string;
+    onChangeText: (value: string) => void;
+    testID: string;
+  }) =>
+    React.createElement("input", {
+      "data-testid": testID,
+      value,
+      onChange: (event: React.ChangeEvent<HTMLInputElement>) => onChangeText(event.target.value),
+    }),
+}));
+
 vi.mock("@/components/ui/loading-spinner", () => ({
   LoadingSpinner: () =>
     React.createElement("span", { "data-testid": "import-session-loading-spinner" }),
@@ -215,6 +232,7 @@ vi.mock("@/projects/host-projects", () => ({
 }));
 
 interface RenderOptions {
+  presentation?: "sheet" | "workspace";
   visible?: boolean;
   onClose?: () => void;
   onImportedAgent?: (agentId: string) => void;
@@ -259,6 +277,7 @@ function renderSheet(
   return render(
     <QueryClientProvider client={queryClient}>
       <ImportSessionSheet
+        presentation={options?.presentation}
         visible={options?.visible ?? true}
         client={client}
         serverId="server-1"
@@ -355,6 +374,43 @@ function createSnapshotEntry(
 }
 
 describe("ImportSessionSheet", () => {
+  it("automatically browses only Codex and Codely in a workspace and imports only on selection", async () => {
+    const entry = createProviderSessionEntry({ providerId: "codely", providerLabel: "Codely" });
+    const fetch = vi.fn().mockImplementation(async (request) => ({
+      entries: request.providers[0] === "codely" ? [entry] : [],
+      filteredAlreadyImportedCount: 0,
+      providerErrors: [],
+    }));
+    const importAgent = vi.fn().mockResolvedValue({
+      ...createImportedAgentSnapshot("imported"),
+      workspaceId: "workspace-1",
+    });
+    renderSheet(createRecentSessionsClient(fetch, importAgent), {
+      presentation: "workspace",
+      workspaceId: "workspace-1",
+      snapshot: {
+        supportsSnapshot: true,
+        entries: ["codex", "codely", "claude"].map((provider) => createSnapshotEntry(provider)),
+      },
+    });
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(fetch.mock.calls.map(([request]) => request.providers[0]).sort()).toEqual([
+      "codely",
+      "codex",
+    ]);
+    expect(fetch.mock.calls.every(([request]) => request.cwd === "/repo/paseo")).toBe(true);
+    expect(importAgent).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByText("Import me"));
+    await waitFor(() =>
+      expect(importAgent).toHaveBeenCalledWith({
+        providerId: "codely",
+        providerHandleId: entry.providerHandleId,
+        cwd: entry.cwd,
+        workspaceId: "workspace-1",
+      }),
+    );
+  });
+
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();

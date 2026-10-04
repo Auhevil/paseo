@@ -1,3 +1,4 @@
+import { app } from "electron";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -28,6 +29,7 @@ const { autoUpdaterMock } = vi.hoisted(() => {
 vi.mock("electron", () => ({
   app: {
     getPath: vi.fn(),
+    getName: vi.fn(() => "Paseo"),
     isPackaged: true,
   },
 }));
@@ -39,6 +41,8 @@ vi.mock("electron-updater", () => ({
 import {
   bucketFromStagingUserId,
   checkForAppUpdate,
+  downloadAndInstallUpdate,
+  installAppUpdateOnQuit,
   createAppUpdateLifecycleLogger,
   resolveStagingUserId,
   rolloutManifestSchema,
@@ -47,6 +51,35 @@ import {
 } from "./auto-updater";
 
 describe("checkForAppUpdate", () => {
+  it("never contacts or installs the official updater in Paseo Codely", async () => {
+    vi.mocked(app.getName).mockReturnValue("Paseo Codely");
+    const before = autoUpdaterMock.checkForUpdates.mock.calls.length;
+    try {
+      expect(
+        await checkForAppUpdate({
+          currentVersion: "0.10.3",
+          releaseChannel: "stable",
+          intent: "automatic",
+        }),
+      ).toMatchObject({ hasUpdate: false, readyToInstall: false });
+      expect(
+        await downloadAndInstallUpdate({ currentVersion: "0.10.3", releaseChannel: "stable" }),
+      ).toMatchObject({ installed: false });
+      expect(
+        await installAppUpdateOnQuit({
+          currentVersion: "0.10.3",
+          releaseChannel: "stable",
+          signal: new AbortController().signal,
+        }),
+      ).toBe(false);
+      expect(autoUpdaterMock.checkForUpdates.mock.calls.length).toBe(before);
+      expect(autoUpdaterMock.downloadUpdate).not.toHaveBeenCalled();
+      expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+    } finally {
+      vi.mocked(app.getName).mockReturnValue("Paseo");
+    }
+  });
+
   it("treats an unpublished channel manifest as an unavailable update", async () => {
     const error = Object.assign(new Error("Cannot find latest-mac.yml"), {
       code: "ERR_UPDATER_CHANNEL_FILE_NOT_FOUND",

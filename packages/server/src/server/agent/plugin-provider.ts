@@ -537,6 +537,7 @@ class ProviderRuntimeSession {
   config: ProviderConfigState = { models: [], modes: [], thinkingOptions: [], settings: [] };
   commands: Array<{ name: string; description: string; argumentHint?: string }> = [];
   persistence: ProviderPersistence | null = null;
+  resumeCommand: string | undefined;
 
   constructor(
     private readonly runtime: ProviderRuntime,
@@ -662,6 +663,7 @@ class ProviderRuntimeSession {
     }
     if (event.type === "session.opened") {
       this.capabilities = [...event.capabilities];
+      this.resumeCommand = event.resumeCommand;
       this.persistence = this.restoration === "core" ? (event.persistence ?? null) : null;
       return;
     }
@@ -730,6 +732,7 @@ class ProviderRuntimeSession {
     if (event.type === "session.commands") this.commands = [...event.commands];
     if (event.type === "session.persistence" && this.restoration === "core") {
       this.persistence = event.persistence;
+      this.resumeCommand = event.resumeCommand;
     }
     this.history.push(event);
     for (const listener of this.listeners) listener(event);
@@ -1140,6 +1143,7 @@ class PluginAgentSession implements AgentSession {
     return {
       provider: this.provider,
       sessionId: this.id,
+      resumeCommand: this.bridge.resumeCommand,
       model: this.bridge.config.model ?? null,
       modeId: this.bridge.config.mode ?? null,
       thinkingOptionId: this.bridge.config.thinkingOption ?? null,
@@ -1414,6 +1418,7 @@ class PluginAgentSession implements AgentSession {
         runtimeInfo: {
           provider: this.provider,
           sessionId: this.id,
+          resumeCommand: this.bridge.resumeCommand,
           model: event.config.model ?? null,
           modeId: event.config.mode ?? null,
           thinkingOptionId: event.config.thinkingOption ?? null,

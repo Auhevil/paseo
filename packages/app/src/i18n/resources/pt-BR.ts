@@ -394,6 +394,10 @@ export const ptBR: TranslationResources = {
     },
   },
   importSession: {
+    clearSearch: en.importSession.clearSearch,
+    limitReached: "Showing up to 200 recent results per provider. Search to find older history.",
+    workspaceHistory: en.importSession.workspaceHistory,
+    connectedSessions: en.importSession.connectedSessions,
     chooseHostTitle: en.importSession.chooseHostTitle,
     title: "Importar sessão",
     searchPlaceholder: "Buscar sessões...",
@@ -2173,6 +2177,7 @@ export const ptBR: TranslationResources = {
         beta: "Beta",
       },
       updates: {
+        manual: en.settings.about.updates.manual,
         label: "Atualizações do app",
         readyToInstall: "Pronta para instalar: {{version}}",
         installTitle: "Instalar atualização desktop",

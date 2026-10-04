@@ -18,6 +18,12 @@ const customWebPlatform = (process.env.PASEO_WEB_PLATFORM ?? "")
   .toLowerCase();
 
 const config = getDefaultConfig(projectRoot);
+// Expo inlines app.config into Constants; variant changes must invalidate that transform.
+config.cacheVersion = [
+  config.cacheVersion,
+  process.env.APP_VARIANT ?? "production",
+  customWebPlatform,
+].join(":");
 const defaultResolveRequest = config.resolver.resolveRequest ?? resolve;
 
 // Keep app exports deterministic across dev machines and CI. Metro's Watchman

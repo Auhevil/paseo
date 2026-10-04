@@ -42,7 +42,13 @@ function assertExecutable(filePath, label) {
 
 function getExecutablePath(appPath) {
   if (process.platform === "darwin") {
-    return path.join(appPath, "Contents", "MacOS", EXECUTABLE_NAME);
+    const name = spawnSync(
+      "/usr/libexec/PlistBuddy",
+      ["-c", "Print :CFBundleExecutable", path.join(appPath, "Contents", "Info.plist")],
+      { encoding: "utf8" },
+    );
+    if (name.status !== 0) throw new Error("Cannot resolve packaged macOS executable");
+    return path.join(appPath, "Contents", "MacOS", name.stdout.trim());
   }
 
   if (process.platform === "win32") {
@@ -65,7 +71,13 @@ function getCliShimPath(appPath) {
 }
 
 function getMacMainExecutablePath(appPath) {
-  return path.join(appPath, "Contents", "MacOS", EXECUTABLE_NAME);
+  const name = spawnSync(
+    "/usr/libexec/PlistBuddy",
+    ["-c", "Print :CFBundleExecutable", path.join(appPath, "Contents", "Info.plist")],
+    { encoding: "utf8" },
+  );
+  if (name.status !== 0) throw new Error("Cannot resolve packaged macOS executable");
+  return path.join(appPath, "Contents", "MacOS", name.stdout.trim());
 }
 
 function getLaunchCommand(executablePath, args) {

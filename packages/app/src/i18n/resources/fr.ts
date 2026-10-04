@@ -396,6 +396,10 @@ export const fr: TranslationResources = {
     },
   },
   importSession: {
+    clearSearch: en.importSession.clearSearch,
+    limitReached: "Showing up to 200 recent results per provider. Search to find older history.",
+    workspaceHistory: en.importSession.workspaceHistory,
+    connectedSessions: en.importSession.connectedSessions,
     chooseHostTitle: en.importSession.chooseHostTitle,
     title: "Session d'importation",
     searchPlaceholder: "Rechercher des sessions...",
@@ -2194,6 +2198,7 @@ export const fr: TranslationResources = {
         beta: "Beta",
       },
       updates: {
+        manual: en.settings.about.updates.manual,
         label: "Mises à jour de l'application",
         readyToInstall: "Prêt à installer:{{version}}",
         installTitle: "Installer la mise à jour du bureau",

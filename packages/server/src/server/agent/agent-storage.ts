@@ -3,6 +3,7 @@ import path from "node:path";
 import { z } from "zod";
 import type { Logger } from "pino";
 
+import { normalizeProviderSessionHandle } from "./provider-session-identity.js";
 import { writeJsonFileAtomic } from "../atomic-file.js";
 import { AgentFeatureSchema, AgentStatusSchema } from "../messages.js";
 import { toStoredAgentRecord } from "./agent-projections.js";
@@ -60,6 +61,7 @@ const STORED_AGENT_SCHEMA = z.object({
     .object({
       provider: z.string(),
       sessionId: z.string().nullable(),
+      resumeCommand: z.string().optional(),
       model: z.string().nullable().optional(),
       thinkingOptionId: z.string().nullable().optional(),
       modeId: z.string().nullable().optional(),
@@ -131,10 +133,11 @@ export class AgentStorage {
     providerHandleId: string,
   ): Promise<StoredAgentRecord[]> {
     await this.load();
+    const identity = normalizeProviderSessionHandle(providerHandleId);
     return Array.from(this.cache.values()).filter(
       (record) =>
         record.persistence?.provider === provider &&
-        (record.persistence.sessionId === providerHandleId ||
+        (normalizeProviderSessionHandle(record.persistence.sessionId) === identity ||
           record.persistence.nativeHandle === providerHandleId),
     );
   }

@@ -527,6 +527,7 @@ export interface AgentRunResult {
 }
 
 export interface AgentRuntimeInfo {
+  resumeCommand?: string;
   provider: AgentProvider;
   sessionId: string | null;
   model?: string | null;

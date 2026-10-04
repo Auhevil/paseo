@@ -1,3 +1,4 @@
+import { normalizeProviderSessionHandle } from "./provider-session-identity.js";
 import type { z } from "zod";
 import type { Logger } from "pino";
 import type { ProviderSnapshotManager } from "./provider-snapshot-manager.js";
@@ -191,6 +192,26 @@ export async function importProviderSession(
   }
   const key = await resolveProviderSessionImportMutationKey(input);
   return serializeProviderSessionImport(input.agentManager, key, async () => {
+    const records = await input.agentStorage.listByProviderSession(
+      input.request.provider,
+      input.request.providerHandleId,
+    );
+    const active = records.find((record) => !record.archivedAt);
+    if (active) {
+      if (!createRealpathAwarePathMatcher(cwd)(active.cwd)) {
+        throw new Error("Provider session cwd does not match import cwd");
+      }
+      const snapshot = await ensureAgentLoaded(active.id, {
+        agentManager: input.agentManager,
+        agentStorage: input.agentStorage,
+        logger: input.logger,
+      });
+      return {
+        snapshot,
+        timelineSize: input.agentManager.getTimeline(snapshot.id).length,
+        createdWorkspace: null,
+      };
+    }
     const placement = await input.workspaceProvisioning.runInImportWorkspace(
       { cwd, requestedWorkspaceId: input.request.workspaceId },
       (workspace) => importProviderSessionNow(input, cwd, workspace.workspaceId),
@@ -210,10 +231,6 @@ async function importProviderSessionNow(
     provider,
     providerHandleId,
   );
-  const activeRecord = matchingRecords.find((record) => !record.archivedAt);
-  if (activeRecord) {
-    throw new Error(`Provider session is already imported: ${providerHandleId}`);
-  }
   const archivedRecord = matchingRecords.find((record) => record.archivedAt);
   if (archivedRecord?.persistence && archivedRecord.archivedAt) {
     if (!createRealpathAwarePathMatcher(cwd)(archivedRecord.cwd)) {
@@ -377,7 +394,7 @@ async function collectImportedProviderSessions(
 }
 
 function toProviderSessionHandleKey(provider: string, providerHandleId: string): string {
-  return `${provider}\0${providerHandleId}`;
+  return `${provider}\0${normalizeProviderSessionHandle(providerHandleId)}`;
 }
 
 function isMetadataGenerationSession(input: { firstPromptPreview: string | null }): boolean {

@@ -1913,6 +1913,7 @@ export class VoiceAssistantWebSocketServer {
         importSessionWorkspaceTarget: true,
         // COMPAT(importSessionSearch): added in v0.7.3, remove gate after 2027-03-02.
         importSessionSearch: true,
+        providerResumeCommands: true,
         // COMPAT(forgeProviders): added in v0.2.0-beta.1. Drop the gate after
         // 2027-01-17 once the supported daemon floor is >= v0.2.0.
         forgeProviders: true,

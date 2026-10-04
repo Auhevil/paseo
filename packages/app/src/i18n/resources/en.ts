@@ -387,6 +387,10 @@ export const en = {
     },
   },
   importSession: {
+    clearSearch: "Clear history search",
+    limitReached: "Showing up to 200 recent results per provider. Search to find older history.",
+    workspaceHistory: "Importable history",
+    connectedSessions: "Connected sessions",
     title: "Import session",
     chooseHostTitle: "Import from host",
     searchPlaceholder: "Search sessions...",
@@ -2261,6 +2265,7 @@ export const en = {
         beta: "Beta",
       },
       updates: {
+        manual: "Manual updates",
         label: "App updates",
         readyToInstall: "Ready to install: {{version}}",
         installTitle: "Install desktop update",

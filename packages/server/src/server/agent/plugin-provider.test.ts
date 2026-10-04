@@ -25,6 +25,7 @@ const CAPABILITIES = [
 interface ProviderHarnessOptions {
   capabilities?: ProviderConnection["capabilities"];
   completeTurn?: boolean;
+  resumeCommand?: string;
   openChildren?: (rootSessionId: string, emit: (event: ProviderEvent) => void) => void;
   handleInput?: (input: ProviderInput, emit: (event: ProviderEvent) => void) => Promise<boolean>;
 }
@@ -69,6 +70,7 @@ function createProviderHarness(options: ProviderHarnessOptions = {}) {
           capabilities,
           restoration: "core",
           persistence: { version: 1, data: { token: "root" } },
+          resumeCommand: options.resumeCommand,
           cwd: input.config.cwd,
         });
         emit({
@@ -281,6 +283,23 @@ function expectNestedChildren(events: AgentStreamEvent[]) {
 }
 
 describe("PluginAgentClientRegistry", () => {
+  test("keeps provider resume commands separate from opaque persistence handles", async () => {
+    const resumeCommand = "node /plugin/terminal.mjs --resume-session native-uuid";
+    const harness = createProviderHarness({ resumeCommand });
+    const registry = new PluginAgentClientRegistry(createTestLogger());
+    registry.replace([harness.registration]);
+    try {
+      const session = await registry.clients()[harness.registration.id]!.createSession({
+        provider: harness.registration.id,
+        cwd: "/workspace",
+      });
+      expect(await session.getRuntimeInfo()).toMatchObject({ resumeCommand });
+      expect(session.describePersistence()?.sessionId).not.toContain(resumeCommand);
+    } finally {
+      await registry.shutdown();
+    }
+  });
+
   test.each([false, true])(
     "contains a failed session open while send is pending: %s",
     async (pendingSend) => {

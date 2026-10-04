@@ -390,6 +390,10 @@ export const ar: TranslationResources = {
     },
   },
   importSession: {
+    clearSearch: en.importSession.clearSearch,
+    limitReached: "Showing up to 200 recent results per provider. Search to find older history.",
+    workspaceHistory: en.importSession.workspaceHistory,
+    connectedSessions: en.importSession.connectedSessions,
     chooseHostTitle: en.importSession.chooseHostTitle,
     title: "جلسة الاستيراد",
     searchPlaceholder: "البحث في الجلسات...",
@@ -2138,6 +2142,7 @@ export const ar: TranslationResources = {
         beta: "Beta",
       },
       updates: {
+        manual: en.settings.about.updates.manual,
         label: "تحديثات التطبيق",
         readyToInstall: "جاهز للتثبيت:{{version}}",
         installTitle: "تثبيت تحديث سطح المكتب",

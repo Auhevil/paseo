@@ -3947,7 +3947,8 @@ export class AgentManager {
         newInfo.model !== agent.runtimeInfo?.model ||
         newInfo.thinkingOptionId !== agent.runtimeInfo?.thinkingOptionId ||
         newInfo.sessionId !== agent.runtimeInfo?.sessionId ||
-        newInfo.modeId !== agent.runtimeInfo?.modeId;
+        newInfo.modeId !== agent.runtimeInfo?.modeId ||
+        newInfo.resumeCommand !== agent.runtimeInfo?.resumeCommand;
       agent.runtimeInfo = newInfo;
       if (!agent.persistence && newInfo.sessionId) {
         agent.persistence = attachPersistenceCwd(

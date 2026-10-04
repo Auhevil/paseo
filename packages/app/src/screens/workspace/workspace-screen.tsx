@@ -40,7 +40,8 @@ import { RetainedPanel } from "@/components/retained-panel";
 import { WorkspaceActions } from "@/git/workspace-actions";
 import { WorkspaceOpenInEditorButton } from "@/workspace/open-in-editor/button";
 import { WorkspaceScriptsButton } from "@/screens/workspace/workspace-scripts-button";
-import { ImportSessionSheet } from "@/components/import-session-sheet";
+import { ImportSessionSheet, WorkspaceNativeHistory } from "@/components/import-session-sheet";
+import { hostSupportsFeature } from "@/runtime/host-features";
 import { useNavigateToImportedAgent } from "@/hooks/use-import-session";
 import { useToast } from "@/contexts/toast-context";
 import { getOrCreateClientId } from "@/utils/client-id";
@@ -2725,12 +2726,21 @@ function WorkspaceScreenContent({
         return;
       }
 
+      const supportsProviderCommand = hostSupportsFeature(
+        useSessionStore.getState().sessions[normalizedServerId]?.serverInfo,
+        "providerResumeCommands",
+      );
+      const providerCommand = supportsProviderCommand
+        ? agent.runtimeInfo?.resumeCommand
+        : undefined;
       const command =
+        providerCommand ??
         buildProviderCommand({
           provider: agent.provider,
           id: "resume",
           sessionId: providerSessionId,
-        }) ?? null;
+        }) ??
+        null;
       if (!command) {
         toast.error(t("workspace.tabs.toasts.resumeCommandUnavailable"));
         return;
@@ -4038,6 +4048,18 @@ function WorkspaceScreenContent({
   const workspaceCenterColumn = (
     <View style={styles.centerColumn}>
       {rendersDesktopSplitContent ? null : renderWorkspaceScreenHeader()}
+
+      <WorkspaceNativeHistory
+        key={`${normalizedServerId}:${normalizedWorkspaceId}`}
+        visible={isRouteFocused}
+        client={client}
+        serverId={normalizedServerId}
+        cwd={workspaceDirectory}
+        workspaceId={normalizedWorkspaceId}
+        onClose={closeImportSheet}
+        onImportedAgent={handleImportedAgent}
+        onImported={navigateToImportedAgent}
+      />
 
       {isMobile ? (
         <MobileWorkspaceTabSwitcher

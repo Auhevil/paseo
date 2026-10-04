@@ -271,6 +271,12 @@ function assertBuiltInDaemonManagementEnabled(settings: DesktopSettings): void {
 }
 
 async function startDaemon(): Promise<DesktopDaemonStatus> {
+  if (app.getName() === "Paseo Codely") {
+    const current = await resolveDesktopDaemonStatus();
+    if (current.status !== "running")
+      throw new Error("Start the independent Paseo daemon before opening Paseo Codely.");
+    return current;
+  }
   assertBuiltInDaemonManagementEnabled(await getDesktopSettingsStore().get());
 
   const current = await resolveDesktopDaemonStatus();
@@ -402,7 +408,8 @@ export function createDaemonCommandHandlers(): Record<string, DesktopCommandHand
     desktop_daemon_status: () => resolveDesktopDaemonStatus(),
     desktop_local_credential: async (args) => {
       const instance = await readDaemonInstance(getPaseoHome());
-      if (!instance?.desktopManaged || typeof args?.listen !== "string") return null;
+      const mayAttach = instance && (instance.desktopManaged || app.getName() === "Paseo Codely");
+      if (!mayAttach || typeof args?.listen !== "string") return null;
       return readLocalCredentialForTarget(getPaseoHome(), args.listen);
     },
     start_desktop_daemon: () => startDaemon(),

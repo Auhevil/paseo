@@ -112,6 +112,17 @@ export function hasMoreSessions(
   });
 }
 
+export function resolveHistoryPagination(
+  queries: ReadonlyArray<SessionsQueryResult>,
+  limit: number,
+) {
+  const showLoadMore = hasMoreSessions(queries, limit);
+  const reachedLimit =
+    nextPageLimit(limit) === limit &&
+    queries.some((result) => (result.data?.entries.length ?? 0) >= limit);
+  return { showLoadMore, reachedLimit, mayHaveMore: showLoadMore || reachedLimit };
+}
+
 export interface ProviderErrorRow {
   provider: string;
   label: string;

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, type PressableStateCallbackType, Text, View } from "react-native";
+import { Pressable, type PressableStateCallbackType, ScrollView, Text, View } from "react-native";
 import { keepPreviousData, useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type {
@@ -11,6 +11,7 @@ import { ChevronDown, Inbox, Layers, RotateCw } from "lucide-react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { AdaptiveModalSheet, type SheetHeader } from "@/components/adaptive-modal-sheet";
 import { Button } from "@/components/ui/button";
+import { SearchField } from "@/components/ui/search-field";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Combobox, ComboboxItem, type ComboboxOption } from "@/components/ui/combobox";
 import { getProviderIcon } from "@/components/provider-icons";
@@ -31,7 +32,7 @@ import {
   formatDirectoryLabel,
   getPromptPreview,
   getSessionTitle,
-  hasMoreSessions,
+  resolveHistoryPagination,
   resolveDirectoryLabel,
   nextPageLimit,
   PER_PROVIDER_LIMIT,
@@ -55,6 +56,7 @@ type RecentProviderSessionsClient = Pick<
 type ImportedAgent = Awaited<ReturnType<RecentProviderSessionsClient["importAgent"]>>;
 
 interface ImportSessionSheetProps {
+  presentation?: "sheet" | "workspace";
   visible: boolean;
   client: RecentProviderSessionsClient | null;
   serverId: string | null;
@@ -74,6 +76,7 @@ type RecentSessionsResponse = Awaited<
 type SessionsQueryKey = ReadonlyArray<string | number | null>;
 
 function buildSessionsQueryKey(input: {
+  serverId: string | null;
   cwd: string | null;
   query: string;
   limit: number;
@@ -81,6 +84,7 @@ function buildSessionsQueryKey(input: {
 }): SessionsQueryKey {
   return [
     "recent-provider-sessions",
+    input.serverId,
     input.cwd,
     input.query,
     input.limit,
@@ -100,6 +104,7 @@ interface SessionsQueryConfig {
 }
 
 function buildSessionsQueriesConfig(args: {
+  serverId: string | null;
   providersToFetch: AgentProvider[] | null;
   visible: boolean;
   client: RecentProviderSessionsClient | null;
@@ -108,11 +113,20 @@ function buildSessionsQueriesConfig(args: {
   limit: number;
   hostDisconnectedMessage?: string;
 }): SessionsQueryConfig[] {
-  const { providersToFetch, visible, client, cwd, query, limit, hostDisconnectedMessage } = args;
+  const {
+    serverId,
+    providersToFetch,
+    visible,
+    client,
+    cwd,
+    query,
+    limit,
+    hostDisconnectedMessage,
+  } = args;
   if (providersToFetch === null) return [];
   const enabled = visible && Boolean(client);
   return providersToFetch.map((provider) => ({
-    queryKey: buildSessionsQueryKey({ cwd, query, limit, provider }),
+    queryKey: buildSessionsQueryKey({ serverId, cwd, query, limit, provider }),
     enabled,
     retry: false as const,
     placeholderData: keepPreviousData,
@@ -128,6 +142,11 @@ function buildSessionsQueriesConfig(args: {
       });
     },
   }));
+}
+
+function HistoryLimitNotice({ visible }: { visible: boolean }) {
+  const { t } = useTranslation();
+  return visible ? <Text style={styles.statusText}>{t("importSession.limitReached")}</Text> : null;
 }
 
 interface SheetStatusMessagesProps {
@@ -398,6 +417,7 @@ function SessionRows({
 }
 
 export function ImportSessionSheet({
+  presentation = "sheet",
   visible,
   client,
   serverId,
@@ -446,21 +466,29 @@ export function ImportSessionSheet({
     supportsWorkspaceTarget,
   });
 
-  const providersToFetch = useMemo(
-    () => (requiresHostUpgrade ? null : resolveProvidersToFetch(supportsSnapshot, snapshotEntries)),
-    [requiresHostUpgrade, supportsSnapshot, snapshotEntries],
-  );
+  const providersToFetch = useMemo(() => {
+    if (requiresHostUpgrade) return null;
+    const providers = resolveProvidersToFetch(supportsSnapshot, snapshotEntries);
+    if (presentation === "workspace" && providers) {
+      return providers.filter((provider) => provider === "codex" || provider === "codely");
+    }
+    return providers;
+  }, [presentation, requiresHostUpgrade, supportsSnapshot, snapshotEntries]);
 
   const providerLabelById = useMemo(
     () => buildProviderLabelMap(snapshotEntries),
     [snapshotEntries],
   );
 
-  const sessionsQueryRoot = useMemo(() => ["recent-provider-sessions", scopeCwd], [scopeCwd]);
+  const sessionsQueryRoot = useMemo(
+    () => ["recent-provider-sessions", serverId, scopeCwd],
+    [serverId, scopeCwd],
+  );
 
   const queriesConfig = useMemo(
     () =>
       buildSessionsQueriesConfig({
+        serverId,
         providersToFetch,
         visible,
         client,
@@ -469,7 +497,7 @@ export function ImportSessionSheet({
         limit: pageLimit,
         hostDisconnectedMessage: t("workspace.terminal.hostDisconnected"),
       }),
-    [providersToFetch, visible, client, scopeCwd, query, pageLimit, t],
+    [serverId, providersToFetch, visible, client, scopeCwd, query, pageLimit, t],
   );
 
   const queries = useQueries({ queries: queriesConfig });
@@ -610,7 +638,10 @@ export function ImportSessionSheet({
     },
     onSuccess: ({ agent, target }) => {
       onClose();
-      if (target.crossWorkspace) {
+      const belongsToAnotherWorkspace = Boolean(
+        workspaceId && agent.workspaceId && agent.workspaceId !== workspaceId,
+      );
+      if (target.crossWorkspace || belongsToAnotherWorkspace) {
         onImported?.(agent);
       } else {
         onImportedAgent?.(agent.id);
@@ -649,10 +680,16 @@ export function ImportSessionSheet({
   const handleRetryProvider = useCallback(
     (provider: string) => {
       void queryClient.refetchQueries({
-        queryKey: buildSessionsQueryKey({ cwd: scopeCwd, query, limit: pageLimit, provider }),
+        queryKey: buildSessionsQueryKey({
+          serverId,
+          cwd: scopeCwd,
+          query,
+          limit: pageLimit,
+          provider,
+        }),
       });
     },
-    [pageLimit, query, queryClient, scopeCwd],
+    [serverId, pageLimit, query, queryClient, scopeCwd],
   );
 
   const handleShowAll = useCallback(() => setIsShowingAllDirectories(true), []);
@@ -717,17 +754,10 @@ export function ImportSessionSheet({
     providerLabelById,
   });
   const showFilter = filterProviders.length > 1;
-  const showLoadMore = hasMoreSessions(queries, pageLimit);
+  const pagination = resolveHistoryPagination(queries, pageLimit);
 
-  return (
-    <AdaptiveModalSheet
-      visible={visible}
-      onClose={onClose}
-      header={header}
-      testID="import-session-sheet"
-      desktopMaxWidth={560}
-      snapPoints={IMPORT_SHEET_SNAP_POINTS}
-    >
+  const contents = (
+    <>
       {showFilter ? (
         <View ref={filterAnchorRef} collapsable={false} style={styles.filterTriggerWrap}>
           <Pressable
@@ -786,7 +816,7 @@ export function ImportSessionSheet({
           onImportSession={handleImportSession}
         />
       ) : null}
-      {showLoadMore ? (
+      {pagination.showLoadMore ? (
         <View style={styles.footer}>
           <Button
             variant="ghost"
@@ -798,12 +828,126 @@ export function ImportSessionSheet({
           </Button>
         </View>
       ) : null}
+      <HistoryLimitNotice visible={pagination.reachedLimit} />
       {showEmptyState ? <SheetEmptyState title={emptyStateTitle} /> : null}
+    </>
+  );
+
+  if (presentation === "workspace") {
+    return (
+      <WorkspaceHistoryFrame
+        count={visibleEntries.length}
+        hasMore={pagination.mayHaveMore}
+        isRefreshing={isRefreshing}
+        onRefresh={handleRefresh}
+        supportsSearch={supportsSearch}
+        searchInput={searchInput}
+        onSearchChange={setSearchInput}
+      >
+        {contents}
+      </WorkspaceHistoryFrame>
+    );
+  }
+  return (
+    <AdaptiveModalSheet
+      visible={visible}
+      onClose={onClose}
+      header={header}
+      testID="import-session-sheet"
+      desktopMaxWidth={560}
+      snapPoints={IMPORT_SHEET_SNAP_POINTS}
+    >
+      {contents}
     </AdaptiveModalSheet>
   );
 }
 
+export function WorkspaceNativeHistory(props: ImportSessionSheetProps) {
+  if (!props.cwd) return null;
+  return <ImportSessionSheet {...props} presentation="workspace" />;
+}
+
+interface WorkspaceHistoryFrameProps {
+  count: number;
+  hasMore: boolean;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+  supportsSearch: boolean;
+  searchInput: string;
+  onSearchChange: (value: string) => void;
+  children: React.ReactNode;
+}
+
+function WorkspaceHistoryFrame({
+  count,
+  hasMore,
+  isRefreshing,
+  onRefresh,
+  supportsSearch,
+  searchInput,
+  onSearchChange,
+  children,
+}: WorkspaceHistoryFrameProps) {
+  const { t } = useTranslation();
+  const [isExpanded, setIsExpanded] = useState(true);
+  const toggleExpanded = useCallback(() => setIsExpanded((value) => !value), []);
+  const accessibilityState = useMemo(() => ({ expanded: isExpanded }), [isExpanded]);
+  return (
+    <View style={styles.workspaceHistory} testID="workspace-native-history">
+      <View style={styles.workspaceHistoryHeader}>
+        <Button
+          variant="ghost"
+          size="xs"
+          onPress={toggleExpanded}
+          accessibilityState={accessibilityState}
+          testID="workspace-native-history-toggle"
+        >
+          {t("importSession.workspaceHistory")} · {count}
+          {hasMore ? "+" : ""}
+        </Button>
+        <RefreshAction isRefreshing={isRefreshing} onPress={onRefresh} />
+      </View>
+      {isExpanded ? (
+        <>
+          {supportsSearch ? (
+            <View style={styles.workspaceHistorySearch}>
+              <SearchField
+                value={searchInput}
+                onChangeText={onSearchChange}
+                placeholder={t("importSession.searchPlaceholder")}
+                clearAccessibilityLabel={t("importSession.clearSearch")}
+                testID="import-session-search"
+              />
+            </View>
+          ) : null}
+          <ScrollView
+            style={styles.workspaceHistoryList}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
+            {children}
+          </ScrollView>
+        </>
+      ) : null}
+      <Text style={styles.statusText}>{t("importSession.connectedSessions")}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create((theme) => ({
+  workspaceHistory: {
+    paddingHorizontal: theme.spacing[3],
+    paddingBottom: theme.spacing[1],
+    borderBottomWidth: theme.borderWidth[1],
+    borderBottomColor: theme.colors.border,
+  },
+  workspaceHistoryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  workspaceHistorySearch: { flexDirection: "row", paddingBottom: theme.spacing[1] },
+  workspaceHistoryList: { maxHeight: 160 },
   subtitleRow: {
     flexDirection: "row",
     alignItems: "center",

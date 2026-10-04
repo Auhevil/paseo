@@ -462,6 +462,27 @@ describe("AgentStorage", () => {
     ]);
   });
 
+  test("matches plugin persistence with reordered JSON keys without rewriting storage", async () => {
+    const handle =
+      'plugin:{"version":1,"data":{"nativeSessionId":"uuid","cwd":"/project","home":"/native","formatVersion":1}}';
+    const reordered =
+      'plugin:{"data":{"home":"/native","formatVersion":1,"cwd":"/project","nativeSessionId":"uuid"},"version":1}';
+    await storage.applySnapshot(
+      createManagedAgent({
+        id: "plugin-session",
+        provider: "codely",
+        persistence: { provider: "codely", sessionId: handle },
+      }),
+    );
+    await expect(storage.listByProviderSession("codely", reordered)).resolves.toMatchObject([
+      { id: "plugin-session", persistence: { sessionId: handle } },
+    ]);
+    await expect(storage.listByProviderSession("codex", reordered)).resolves.toEqual([]);
+    await expect(
+      storage.listByProviderSession("codely", reordered.replace("/project", "/other")),
+    ).resolves.toEqual([]);
+  });
+
   test("queries agents by workspace", async () => {
     await storage.applySnapshot(
       createManagedAgent({ id: "workspace-agent", workspaceId: "workspace-1" }),

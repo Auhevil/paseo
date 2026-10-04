@@ -7,7 +7,9 @@ const withFdroidAutolinking = require("./plugins/with-fdroid-autolinking");
 const withPasteInput = require("./plugins/with-paste-input");
 const withAndroidScroll = require("./modules/paseo-scroll/app.plugin");
 const { getNativeReleaseVersion } = require("./native-release-version");
+const withCodelyAndroidSigning = require("./plugins/with-codely-android-signing");
 const appVariant = process.env.APP_VARIANT ?? "production";
+const isCodelyBuild = appVariant === "codely";
 const isFdroidBuild = process.env.PASEO_FDROID_BUILD === "1";
 const isProfileBuild = process.env.PASEO_PROFILE_BUILD === "1";
 
@@ -66,6 +68,7 @@ function resolveSecretFile(params) {
 }
 
 const variants = {
+  codely: { name: "Paseo Codely", packageId: "io.github.auhevil.paseo.codely" },
   production: {
     name: "Paseo",
     packageId: "sh.paseo",
@@ -102,7 +105,7 @@ export default {
     version: nativeReleaseVersion.appVersion,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "paseo",
+    scheme: isCodelyBuild ? "paseo-codely" : "paseo",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
@@ -142,6 +145,7 @@ export default {
     plugins: [
       "expo-router",
       withPasteInput,
+      ...(isCodelyBuild ? [withCodelyAndroidSigning] : []),
       withAndroidScroll,
       [withAndroidAsyncStorageSize, 64],
       ...buildProfile.cameraPlugins,
@@ -189,10 +193,9 @@ export default {
       fdroidBuild: isFdroidBuild,
       profileBuild: isProfileBuild,
       router: {},
-      eas: {
-        projectId: "0e7f65ce-0367-46c8-a238-2b65963d235a",
-      },
+      manualUpdates: isCodelyBuild,
+      ...(isCodelyBuild ? {} : { eas: { projectId: "0e7f65ce-0367-46c8-a238-2b65963d235a" } }),
     },
-    owner: "getpaseo",
+    ...(isCodelyBuild ? {} : { owner: "getpaseo" }),
   },
 };

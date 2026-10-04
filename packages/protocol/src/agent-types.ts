@@ -532,6 +532,7 @@ export interface AgentSessionConfig {
 }
 
 export interface AgentRuntimeInfo {
+  resumeCommand?: string;
   provider: AgentProvider;
   sessionId: string | null;
   model?: string | null;

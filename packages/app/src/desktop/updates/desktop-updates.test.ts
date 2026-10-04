@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-async function loadModuleForPlatform(platform: "web" | "ios" | "android") {
+async function loadModuleForPlatform(platform: "web" | "ios" | "android", manualUpdates = false) {
   vi.resetModules();
+  vi.doMock("expo-constants", () => ({ default: { expoConfig: { extra: { manualUpdates } } } }));
   vi.doMock("react-native", () => ({ Platform: { OS: platform } }));
   return import("./desktop-updates");
 }
@@ -9,8 +10,18 @@ async function loadModuleForPlatform(platform: "web" | "ios" | "android") {
 describe("desktop-updates helpers", () => {
   afterEach(() => {
     vi.doUnmock("react-native");
+    vi.doUnmock("expo-constants");
+    vi.doUnmock("@/desktop/host");
     vi.restoreAllMocks();
     vi.resetModules();
+  });
+
+  it("hides official update controls for the manual-update desktop variant", async () => {
+    vi.doMock("@/desktop/host", () => ({ isElectronRuntime: () => true }));
+    const personal = await loadModuleForPlatform("web", true);
+    expect(personal.shouldShowDesktopUpdateSection()).toBe(false);
+    const official = await loadModuleForPlatform("web");
+    expect(official.shouldShowDesktopUpdateSection()).toBe(true);
   });
 
   it("normalizes versions for app-daemon comparisons", async () => {

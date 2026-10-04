@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
 import {
@@ -450,6 +451,20 @@ interface AboutSectionProps {
   isDesktopApp: boolean;
 }
 
+function DesktopAppUpdateEntry() {
+  const { t } = useTranslation();
+  if (Constants.expoConfig?.extra?.manualUpdates === true) {
+    return (
+      <View style={settingsStyles.row}>
+        <Text style={settingsStyles.rowHint}>
+          Paseo Codely · {t("settings.about.updates.manual")}
+        </Text>
+      </View>
+    );
+  }
+  return <DesktopAppUpdateRow />;
+}
+
 function AboutSection({ appVersion, appVersionText, isDesktopApp }: AboutSectionProps) {
   const { t } = useTranslation();
   return (
@@ -464,7 +479,7 @@ function AboutSection({ appVersion, appVersionText, isDesktopApp }: AboutSection
             <Text style={styles.aboutValue}>{appVersionText}</Text>
           </View>
           <WhatsNewRow />
-          {isDesktopApp ? <DesktopAppUpdateRow /> : null}
+          {isDesktopApp ? <DesktopAppUpdateEntry /> : null}
         </View>
       </SettingsSection>
       <ConnectedHostsSection clientVersion={appVersion} />

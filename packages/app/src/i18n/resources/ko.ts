@@ -391,6 +391,10 @@ export const ko: TranslationResources = {
     },
   },
   importSession: {
+    clearSearch: en.importSession.clearSearch,
+    limitReached: "Showing up to 200 recent results per provider. Search to find older history.",
+    workspaceHistory: en.importSession.workspaceHistory,
+    connectedSessions: en.importSession.connectedSessions,
     chooseHostTitle: en.importSession.chooseHostTitle,
     title: "세션 가져오기",
     searchPlaceholder: "세션 검색...",
@@ -2149,6 +2153,7 @@ export const ko: TranslationResources = {
         beta: "베타",
       },
       updates: {
+        manual: en.settings.about.updates.manual,
         label: "앱 업데이트",
         readyToInstall: "설치 준비됨: {{version}}",
         installTitle: "데스크톱 업데이트 설치",

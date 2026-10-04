@@ -394,6 +394,10 @@ export const ru: TranslationResources = {
     },
   },
   importSession: {
+    clearSearch: en.importSession.clearSearch,
+    limitReached: "Showing up to 200 recent results per provider. Search to find older history.",
+    workspaceHistory: en.importSession.workspaceHistory,
+    connectedSessions: en.importSession.connectedSessions,
     chooseHostTitle: en.importSession.chooseHostTitle,
     title: "Импортировать сессию",
     searchPlaceholder: "Поиск сессий...",
@@ -2176,6 +2180,7 @@ export const ru: TranslationResources = {
         beta: "Бета",
       },
       updates: {
+        manual: en.settings.about.updates.manual,
         label: "Обновления приложения",
         readyToInstall: "Версия {{version}} готова к установке",
         installTitle: "Установить обновление настольного приложения",

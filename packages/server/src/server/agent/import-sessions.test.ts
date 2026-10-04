@@ -781,7 +781,7 @@ test("importProviderSession uses the provider import path with the requested lab
   });
 });
 
-test("importProviderSession rejects a provider session with an active stored owner", async () => {
+test("importProviderSession opens an existing active owner without creating another agent", async () => {
   const harness = await ProviderImportHarness.create({ sessionId: "thread-active" });
   await harness.seed(
     makeStoredProviderSession({
@@ -794,7 +794,7 @@ test("importProviderSession rejects a provider session with an active stored own
 
   await expect(
     harness.import({ providerHandleId: "thread-active", cwd: harness.snapshot.cwd }),
-  ).rejects.toThrow("Provider session is already imported: thread-active");
+  ).resolves.toMatchObject({ snapshot: { id: harness.snapshot.id }, createdWorkspace: null });
   expect(harness.freshImports).toEqual([]);
 });
 
@@ -897,9 +897,7 @@ test("importProviderSession serializes legacy and native aliases for one archive
     snapshot: { id: harness.snapshot.id },
     timelineSize: 0,
   });
-  await expect(duplicateRestore).rejects.toThrow(
-    "Provider session is already imported: legacy-thread",
-  );
+  await expect(duplicateRestore).resolves.toMatchObject({ snapshot: { id: harness.snapshot.id } });
   expect(harness.resumeAttempts).toBe(1);
   expect(harness.closedAgentIds).toEqual([]);
 });

@@ -179,6 +179,7 @@ function buildStoredRuntimeInfo(record: StoredAgentRecord): AgentRuntimeInfo | u
   if (Object.prototype.hasOwnProperty.call(ri, "modeId")) {
     runtimeInfo.modeId = ri.modeId ?? null;
   }
+  if (ri.resumeCommand !== undefined) runtimeInfo.resumeCommand = ri.resumeCommand;
   if (ri.extra) {
     runtimeInfo.extra = ri.extra;
   }
@@ -488,6 +489,7 @@ function sanitizeRuntimeInfo(
     provider: runtimeInfo.provider,
     sessionId: runtimeInfo.sessionId,
   };
+  if (runtimeInfo.resumeCommand !== undefined) sanitized.resumeCommand = runtimeInfo.resumeCommand;
   if (runtimeInfo.model !== undefined) {
     sanitized.model = runtimeInfo.model;
   }

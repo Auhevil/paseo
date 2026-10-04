@@ -86,6 +86,7 @@ function createManagedAgent(overrides: ManagedAgentOverrides = {}): ManagedAgent
     runtimeInfo: {
       provider: "claude",
       sessionId: "session-123",
+      resumeCommand: "native-cli --resume session-123",
       model: "claude-3.5-sonnet",
       modeId: "plan",
     },
@@ -174,6 +175,7 @@ describe("toStoredAgentRecord", () => {
     expect(record.runtimeInfo).toEqual({
       provider: "claude",
       sessionId: "session-123",
+      resumeCommand: "native-cli --resume session-123",
       model: "claude-3.5-sonnet",
       modeId: "plan",
     });

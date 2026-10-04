@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { isElectronRuntime } from "@/desktop/host";
 import { invokeDesktopCommand } from "@/desktop/electron/invoke";
 import { isWeb } from "@/constants/platform";
@@ -62,7 +63,7 @@ function toNumberOr(defaultValue: number, value: unknown): number {
 }
 
 export function shouldShowDesktopUpdateSection(): boolean {
-  return isWeb && isElectronRuntime();
+  return isWeb && isElectronRuntime() && Constants.expoConfig?.extra?.manualUpdates !== true;
 }
 
 export function parseLocalDaemonVersionResult(raw: unknown): LocalDaemonVersionResult {

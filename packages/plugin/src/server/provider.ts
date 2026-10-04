@@ -538,6 +538,8 @@ export type ProviderEvent =
       capabilities: readonly string[];
       restoration: "core" | "parent";
       persistence?: ProviderPersistence;
+      /** Host-shell command supplied by the trusted provider; must enforce native ownership. */
+      resumeCommand?: string;
       title?: string;
       description?: string;
       cwd: string;
@@ -545,7 +547,12 @@ export type ProviderEvent =
   | { type: "session.ready"; requestId?: string; sessionId: string }
   | { type: "session.closed"; sessionId: string; error?: ProviderError }
   | { type: "session.runtime_failed"; sessionId: string; error: ProviderError }
-  | { type: "session.persistence"; sessionId: string; persistence: ProviderPersistence }
+  | {
+      type: "session.persistence";
+      sessionId: string;
+      persistence: ProviderPersistence;
+      resumeCommand?: string;
+    }
   | {
       type: "session.prompt_result";
       sessionId: string;
@@ -1285,6 +1292,7 @@ export const ProviderEventSchema: z.ZodType<ProviderEvent> = z.discriminatedUnio
       capabilities: z.array(z.string()),
       restoration: z.enum(["core", "parent"]),
       persistence: persistenceSchema.optional(),
+      resumeCommand: z.string().optional(),
       title: z.string().optional(),
       description: z.string().optional(),
       cwd: z.string(),
@@ -1316,6 +1324,7 @@ export const ProviderEventSchema: z.ZodType<ProviderEvent> = z.discriminatedUnio
       type: z.literal("session.persistence"),
       sessionId: idSchema,
       persistence: persistenceSchema,
+      resumeCommand: z.string().optional(),
     })
     .strip(),
   z

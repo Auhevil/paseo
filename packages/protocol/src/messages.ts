@@ -793,6 +793,7 @@ const AgentPersistenceHandleSchema: z.ZodType<AgentPersistenceHandle | null> = z
   .nullable();
 
 const AgentRuntimeInfoSchema: z.ZodType<AgentRuntimeInfo> = z.object({
+  resumeCommand: z.string().optional(),
   provider: AgentProviderSchema,
   sessionId: z.string().nullable(),
   model: z.string().nullable().optional(),
@@ -3662,6 +3663,7 @@ export const ServerInfoStatusPayloadSchema = z
         importSessionWorkspaceTarget: z.boolean().optional(),
         // COMPAT(importSessionSearch): added in v0.8.0, remove gate after 2027-03-02.
         importSessionSearch: z.boolean().optional(),
+        providerResumeCommands: z.boolean().optional(),
         // COMPAT(forgeProviders): added in v0.2.0-beta.1. Drop the gate after
         // 2027-01-17 once the supported daemon floor is >= v0.2.0.
         // Daemon advertises pluggable non-GitHub forge support (the forge registry);

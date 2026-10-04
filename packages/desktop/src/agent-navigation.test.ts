@@ -2,6 +2,16 @@ import { describe, expect, it } from "vitest";
 import { AgentNavigationInbox, parseAgentDeepLinkFromArgv } from "./agent-navigation.js";
 
 describe("desktop agent navigation", () => {
+  it("accepts the separate Codely URL scheme", () => {
+    expect(parseAgentDeepLinkFromArgv(["paseo-codely://h/server-1/agent/agent-2"])).toEqual({
+      serverId: "server-1",
+      agentId: "agent-2",
+    });
+    expect(
+      parseAgentDeepLinkFromArgv(["paseo-codely://h/server-1/agent/agent-2?unexpected=1"]),
+    ).toBeNull();
+  });
+
   it("finds an agent deep link among Electron launch arguments", () => {
     expect(
       parseAgentDeepLinkFromArgv([

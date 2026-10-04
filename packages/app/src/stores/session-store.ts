@@ -61,6 +61,7 @@ import {
 } from "@/timeline/turn-liveness";
 
 export interface AgentRuntimeInfo {
+  resumeCommand?: string;
   provider: AgentProvider;
   sessionId: string | null;
   model?: string | null;

@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import "@/styles/unistyles";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PortalProvider } from "@gorhom/portal";
@@ -364,6 +365,8 @@ async function shouldStartBuiltInDaemon(): Promise<boolean> {
   if (hasConfiguredLocalDaemonOverride()) {
     return false;
   }
+  // The personal desktop's start endpoint only attaches to an independently running daemon.
+  if (Constants.expoConfig?.extra?.manualUpdates === true) return true;
   const settings = await loadDesktopSettings();
   return settings.daemon.manageBuiltInDaemon;
 }

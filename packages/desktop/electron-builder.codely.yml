@@ -1,0 +1,17 @@
+extends: ./electron-builder.yml
+appId: io.github.auhevil.paseo.codely.desktop
+productName: Paseo Codely
+executableName: Paseo Codely
+extraMetadata:
+  productName: Paseo Codely
+protocols:
+  - name: Paseo Codely agent link
+    schemes:
+      - paseo-codely
+publish: null
+mac:
+  artifactName: "Paseo-Codely-${version}-${arch}.${ext}"
+  # Ad-hoc local signing has no Team ID for hardened library validation.
+  hardenedRuntime: false
+  identity: "-"
+  notarize: false

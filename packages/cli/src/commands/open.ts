@@ -7,6 +7,8 @@ import { buildAgentDeepLink, type AgentDeepLinkTarget } from "@getpaseo/protocol
 function findDesktopApp(): string | null {
   if (process.platform === "darwin") {
     const candidates = [
+      "/Applications/Paseo Codely.app",
+      path.join(homedir(), "Applications", "Paseo Codely.app"),
       "/Applications/Paseo.app",
       path.join(homedir(), "Applications", "Paseo.app"),
     ];

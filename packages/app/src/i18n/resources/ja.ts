@@ -395,6 +395,10 @@ export const ja: TranslationResources = {
     },
   },
   importSession: {
+    clearSearch: en.importSession.clearSearch,
+    limitReached: "Showing up to 200 recent results per provider. Search to find older history.",
+    workspaceHistory: en.importSession.workspaceHistory,
+    connectedSessions: en.importSession.connectedSessions,
     chooseHostTitle: en.importSession.chooseHostTitle,
     title: "セッションをインポート",
     searchPlaceholder: "セッションを検索...",
@@ -2157,6 +2161,7 @@ export const ja: TranslationResources = {
         beta: "ベータ",
       },
       updates: {
+        manual: en.settings.about.updates.manual,
         label: "アプリの更新",
         readyToInstall: "インストール準備完了: {{version}}",
         installTitle: "デスクトップの更新をインストール",

@@ -8,6 +8,7 @@ import { createDaemonCommandHandlers } from "./daemon-manager";
 
 const mocks = vi.hoisted(() => ({
   paseoHome: "",
+  appName: "Paseo",
   settings: {
     releaseChannel: "stable",
     daemon: {
@@ -33,6 +34,7 @@ vi.mock("electron", () => ({
   app: {
     getPath: vi.fn(() => mocks.paseoHome),
     getVersion: vi.fn(() => "1.2.3"),
+    getName: () => mocks.appName,
     isPackaged: true,
   },
   ipcMain: { handle: vi.fn() },
@@ -82,6 +84,7 @@ describe("daemon-manager commands", () => {
   let fixtureRoot: string;
 
   beforeEach(() => {
+    mocks.appName = "Paseo";
     fixtureRoot = mkdtempSync(path.join(tmpdir(), "paseo daemon manager "));
     mocks.paseoHome = path.join(fixtureRoot, "home");
     mocks.appLogPath = path.join(fixtureRoot, "main.log");
@@ -144,5 +147,8 @@ describe("daemon-manager commands", () => {
     expect(await handler({ listen: "remote:6799" })).toBeNull();
     writeFileSync(lockPath, JSON.stringify({ ...lock, desktopManaged: false }));
     expect(await handler({ listen: "localhost:6799" })).toBeNull();
+    mocks.appName = "Paseo Codely";
+    expect(await handler({ listen: "localhost:6799" })).toBe(token);
+    expect(await handler({ listen: "remote:6799" })).toBeNull();
   });
 });

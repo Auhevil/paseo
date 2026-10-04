@@ -10,6 +10,7 @@ import {
   getPromptPreview,
   getSessionTitle,
   hasMoreSessions,
+  resolveHistoryPagination,
   nextPageLimit,
   PER_PROVIDER_LIMIT,
   resolveDirectoryLabel,
@@ -220,6 +221,22 @@ describe("nextPageLimit", () => {
 
   it("stops at the protocol ceiling", () => {
     expect(nextPageLimit(200)).toBe(200);
+  });
+});
+
+describe("history limit notice", () => {
+  it("does not present the protocol ceiling as complete history", () => {
+    expect(
+      resolveHistoryPagination(
+        [settled({ entries: Array.from({ length: 200 }, () => entry()) })],
+        200,
+      ),
+    ).toEqual({ showLoadMore: false, reachedLimit: true, mayHaveMore: true });
+    expect(resolveHistoryPagination([settled({ entries: [entry()] })], 200)).toEqual({
+      showLoadMore: false,
+      reachedLimit: false,
+      mayHaveMore: false,
+    });
   });
 });
 

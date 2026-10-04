@@ -390,6 +390,10 @@ export const zhCN: TranslationResources = {
     },
   },
   importSession: {
+    clearSearch: "清除历史搜索",
+    limitReached: "每个提供商最多显示最近 200 条结果；请搜索以查找更早的历史。",
+    workspaceHistory: "可导入历史",
+    connectedSessions: "已接入会话",
     chooseHostTitle: en.importSession.chooseHostTitle,
     title: "导入会话",
     searchPlaceholder: "搜索会话...",
@@ -2113,6 +2117,7 @@ export const zhCN: TranslationResources = {
         beta: "Beta",
       },
       updates: {
+        manual: "手动更新",
         label: "应用更新",
         readyToInstall: "可安装：{{version}}",
         installTitle: "安装桌面版更新",
