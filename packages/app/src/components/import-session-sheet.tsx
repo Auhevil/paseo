@@ -648,7 +648,7 @@ export function ImportSessionSheet({
       }
       void queryClient.invalidateQueries({
         queryKey: sessionsQueryRoot,
-        refetchType: "none",
+        refetchType: presentation === "workspace" ? "active" : "none",
       });
     },
   });

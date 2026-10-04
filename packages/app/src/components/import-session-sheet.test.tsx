@@ -376,14 +376,15 @@ function createSnapshotEntry(
 describe("ImportSessionSheet", () => {
   it("automatically browses only Codex and Codely in a workspace and imports only on selection", async () => {
     const entry = createProviderSessionEntry({ providerId: "codely", providerLabel: "Codely" });
+    let imported = false;
     const fetch = vi.fn().mockImplementation(async (request) => ({
-      entries: request.providers[0] === "codely" ? [entry] : [],
+      entries: request.providers[0] === "codely" && !imported ? [entry] : [],
       filteredAlreadyImportedCount: 0,
       providerErrors: [],
     }));
-    const importAgent = vi.fn().mockResolvedValue({
-      ...createImportedAgentSnapshot("imported"),
-      workspaceId: "workspace-1",
+    const importAgent = vi.fn().mockImplementation(async () => {
+      imported = true;
+      return { ...createImportedAgentSnapshot("imported"), workspaceId: "workspace-1" };
     });
     renderSheet(createRecentSessionsClient(fetch, importAgent), {
       presentation: "workspace",
@@ -409,6 +410,8 @@ describe("ImportSessionSheet", () => {
         workspaceId: "workspace-1",
       }),
     );
+    await waitFor(() => expect(screen.queryByText("Import me")).toBeNull());
+    expect(fetch).toHaveBeenCalledTimes(4);
   });
 
   afterEach(() => {
